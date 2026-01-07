@@ -1,0 +1,41 @@
+replicaCount: 1
+
+image:
+  repository: kasparov112000/learnbytesting-redis-cache-server
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3033
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  PORT: "3033"
+  REDIS_HOST: "redis-master"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_KEY_PREFIX: "lbt:"
+  CACHE_DEFAULT_TTL: "86400"
+  CACHE_LICHESS_TTL: "604800"
+
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 3033
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 3033
+  initialDelaySeconds: 5
+  periodSeconds: 10
