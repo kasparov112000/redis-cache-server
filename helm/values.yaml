@@ -30,12 +30,14 @@ livenessProbe:
   httpGet:
     path: /health/live
     port: 3033
-  initialDelaySeconds: 10
+  initialDelaySeconds: 15
   periodSeconds: 30
+  failureThreshold: 3
 
 readinessProbe:
   httpGet:
-    path: /health/ready
+    path: /health/live
     port: 3033
-  initialDelaySeconds: 5
+  initialDelaySeconds: 10
   periodSeconds: 10
+  failureThreshold: 3

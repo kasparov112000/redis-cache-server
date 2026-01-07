@@ -46,10 +46,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Redis client ready');
       });
 
-      // Try to connect but don't fail if Redis is unavailable
-      await this.client.connect().catch((err) => {
-        this.logger.warn(`Could not connect to Redis: ${err.message}. Service will run in degraded mode.`);
-      });
+      // With lazyConnect, connection will be established on first command
+      this.logger.log(`Redis client initialized (lazy connect to ${redisConfig.host}:${redisConfig.port})`);
     } catch (error) {
       this.logger.warn(`Failed to initialize Redis client: ${error.message}`);
     }
