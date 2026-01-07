@@ -14,29 +14,45 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisConfig = this.configService.get('redis');
     this.keyPrefix = redisConfig.keyPrefix;
 
-    this.client = new Redis({
-      host: redisConfig.host,
-      port: redisConfig.port,
-      password: redisConfig.password,
-      db: redisConfig.db,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      maxRetriesPerRequest: 3,
-    });
+    try {
+      this.client = new Redis({
+        host: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password,
+        db: redisConfig.db,
+        retryStrategy: (times) => {
+          if (times > 10) {
+            this.logger.warn('Max Redis reconnection attempts reached');
+            return null; // Stop retrying
+          }
+          const delay = Math.min(times * 100, 3000);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+        lazyConnect: true, // Don't fail on startup if Redis unavailable
+        enableReadyCheck: false,
+        connectTimeout: 5000,
+      });
 
-    this.client.on('connect', () => {
-      this.logger.log('Connected to Redis');
-    });
+      this.client.on('connect', () => {
+        this.logger.log('Connected to Redis');
+      });
 
-    this.client.on('error', (error) => {
-      this.logger.error(`Redis error: ${error.message}`);
-    });
+      this.client.on('error', (error) => {
+        this.logger.warn(`Redis error: ${error.message}`);
+      });
 
-    this.client.on('ready', () => {
-      this.logger.log('Redis client ready');
-    });
+      this.client.on('ready', () => {
+        this.logger.log('Redis client ready');
+      });
+
+      // Try to connect but don't fail if Redis is unavailable
+      await this.client.connect().catch((err) => {
+        this.logger.warn(`Could not connect to Redis: ${err.message}. Service will run in degraded mode.`);
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to initialize Redis client: ${error.message}`);
+    }
   }
 
   async onModuleDestroy() {
